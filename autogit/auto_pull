@@ -1,0 +1,48 @@
+function auto_pull() {
+  if is_git_repository; then
+    local stashName="auto_pull_$(date +%s)"
+    local original_branch=$(git rev-parse --abbrev-ref HEAD)
+    
+    git stash save -u $stashName > /dev/null 2>&1
+    if git stash list | grep -q $stashName; then
+      echo "Local changes detected and stashed."
+    fi
+    
+    # Determine the default branch
+    local default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+    if [[ -z "$default_branch" ]]; then
+      if git show-ref --verify --quiet refs/remotes/origin/main; then
+        default_branch="main"
+      elif git show-ref --verify --quiet refs/remotes/origin/master; then
+        default_branch="master"
+      else
+        echo "Could not determine default branch"
+        return
+      fi
+    fi
+    
+    # Switch to the default branch silently
+    echo "Switching to the default branch '$default_branch'..."
+    git checkout $default_branch > /dev/null 2>&1
+
+    # Set tracking information if not already set
+    if ! git rev-parse --abbrev-ref $default_branch@{u} >/dev/null 2>&1; then
+      echo "Setting tracking information for the default branch..."
+      git branch --set-upstream-to=origin/$default_branch $default_branch
+    fi
+    
+    if needs_pull; then
+      echo "Pulling the latest changes..."
+      git pull
+    fi
+
+    echo "Switching back to the original branch '$original_branch'..."
+    git checkout $original_branch > /dev/null 2>&1
+
+    if git stash list | grep -q $stashName; then
+      echo "Applying stashed changes..."
+      git stash apply
+    fi
+  fi
+}
+

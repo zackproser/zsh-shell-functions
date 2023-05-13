@@ -1,0 +1,15 @@
+# Override cd to perform a normal cd, and then, if that succeeds, also run auto_pull
+function cd() {
+  builtin cd "$@" && auto_pull
+}
+
+function gum_auto_pull() {
+  gum spin --spinner dot --title "Updating git repository if necessary..." -- zsh -c "source ~/.zshrc; auto_pull"
+}
+
+# Override the change present working directory ZSH shell function
+function chpwd() {
+  gum_auto_pull
+}
+
+# TODO - get FZF-based navigation working the same way

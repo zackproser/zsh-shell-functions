@@ -1,0 +1,27 @@
+function needs_pull() {
+  echo "Updating remote tracking branches..."
+  git remote update > /dev/null 2>&1
+  
+  # Determine the default branch
+  local default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+  if [[ -z "$default_branch" ]]; then
+    if git show-ref --verify --quiet refs/remotes/origin/main; then
+      default_branch="main"
+    elif git show-ref --verify --quiet refs/remotes/origin/master; then
+      default_branch="master"
+    else
+      echo "Could not determine default branch"
+      return
+    fi
+  fi
+  
+  # Check if the default branch needs to be pulled
+  local commits_behind=$(git rev-list HEAD...origin/$default_branch --count)
+  if [[ $commits_behind -ne 0 ]]; then
+    echo "Default branch '$default_branch' is $commits_behind commit(s) behind the remote version. Pull needed."
+    return 0
+  else
+    echo "Default branch '$default_branch' is up to date with the remote version."
+    return 1
+  fi
+}
