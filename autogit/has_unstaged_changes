@@ -1,0 +1,3 @@
+has_unstaged_changes() {
+  [[ -n "$(git status --porcelain)" ]]
+}

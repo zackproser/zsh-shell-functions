@@ -1,0 +1,5 @@
+is_git_repository() {
+  git -C . rev-parse 2> /dev/null
+}
+
+is_git_repository "@"
