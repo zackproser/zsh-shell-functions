@@ -25,6 +25,10 @@ function auto_pull() {
     echo "Switching to the default branch '$default_branch'..."
     git checkout $default_branch > /dev/null 2>&1
 
+    # Fetch all branches and tags, and prune deleted ones
+    echo "Fetching all branches and tags, and pruning deleted ones..."
+    git fetch --all --prune
+
     # Set tracking information if not already set
     if ! git rev-parse --abbrev-ref $default_branch@{u} >/dev/null 2>&1; then
       echo "Setting tracking information for the default branch..."
