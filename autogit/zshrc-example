@@ -1,3 +1,5 @@
+# Auto git functionality 
+
 # Override cd to perform a normal cd, and then, if that succeeds, also run auto_pull
 function cd() {
   builtin cd "$@" && auto_pull
@@ -10,6 +12,10 @@ function gum_auto_pull() {
 # Override the change present working directory ZSH shell function
 function chpwd() {
   gum_auto_pull
+}
+
+function gcai() {
+ git_commit_message_helper
 }
 
 # TODO - get FZF-based navigation working the same way
