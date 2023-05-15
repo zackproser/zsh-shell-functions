@@ -1,3 +1,12 @@
+# Autoload zsh shell functions defined in the function path 
+fpath=( ~/.zsh_autoload_functions "${fpath[@]}" )
+
+# Autoload our shell functions
+autoload -Uz needs_pull 
+autoload -Uz auto_pull
+autoload -Uz check_and_switch_to_main
+autoload -Uz git_commit_message_helper
+
 # Auto git functionality 
 
 # Override cd to perform a normal cd, and then, if that succeeds, also run auto_pull
@@ -14,6 +23,8 @@ function chpwd() {
   gum_auto_pull
 }
 
+# gcai is an alias for "git commit (A.I.) - meaning that chatgpt-4, ala charm's mods CLI, will write my 
+# commit messages for me - and I can opt to accept or reject the auto-generated message
 function gcai() {
  git_commit_message_helper
 }

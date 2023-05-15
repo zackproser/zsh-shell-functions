@@ -1,13 +1,39 @@
+# Global variable to store the last processed repository root
+typeset -g LAST_PROCESSED_REPO=""
+
 function auto_pull() {
   if is_git_repository; then
-    local stashName="auto_pull_$(date +%s)"
-    local original_branch=$(git rev-parse --abbrev-ref HEAD)
-    
-    git stash save -u $stashName > /dev/null 2>&1
-    if git stash list | grep -q $stashName; then
-      echo "Local changes detected and stashed."
+ 
+    local repo_root=$(git rev-parse --show-toplevel)
+
+    # If we're in the same repository as the last processed one, skip
+    if [[ "$repo_root" == "$LAST_PROCESSED_REPO" ]]; then
+      return
     fi
-    
+
+    LAST_PROCESSED_REPO=$repo_root
+
+    # Check if the repository has any commits
+    if [ -z "$(git rev-parse HEAD 2>/dev/null)" ]; then
+      echo "The repository is brand new and doesn't have any commits."
+      return
+    fi
+
+    # Check if the repository has a remote set up
+    if [ -z "$(git config --get remote.origin.url)" ]; then
+      echo "The repository doesn't have a remote set up."
+      return
+    fi
+
+    # Fetch all branches and tags, and prune deleted ones
+    echo "Fetching all branches and tags, and pruning deleted ones..."
+    git fetch --all --prune
+
+    # Check if the repository was cloned when the default branch was 'master' but now it's 'main'
+    if check_and_switch_to_main; then
+      return
+    fi
+
     # Determine the default branch
     local default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
     if [[ -z "$default_branch" ]]; then
@@ -20,27 +46,22 @@ function auto_pull() {
         return
       fi
     fi
-    
-    # Switch to the default branch silently
-    echo "Switching to the default branch '$default_branch'..."
-    git checkout $default_branch > /dev/null 2>&1
 
-    # Fetch all branches and tags, and prune deleted ones
-    echo "Fetching all branches and tags, and pruning deleted ones..."
-    git fetch --all --prune
-
-    # Set tracking information if not already set
-    if ! git rev-parse --abbrev-ref $default_branch@{u} >/dev/null 2>&1; then
-      echo "Setting tracking information for the default branch..."
-      git branch --set-upstream-to=origin/$default_branch $default_branch
-    fi
-    
-    if needs_pull; then
-      echo "Pulling the latest changes..."
-      git pull
+    # Check if the repository needs to be updated
+    if ! needs_pull $default_branch; then
+      echo "The repository is already up to date."
+      return
     fi
 
-    echo "Switching back to the original branch '$original_branch'..."
+    # Check if there are any changes
+    if ! git diff-index --quiet HEAD --; then
+      local stashName="auto_pull_$(date +%s)"
+      git stash save -u $stashName > /dev/null 2>&1
+      if git stash list | grep -q $stashName; then
+        echo "Local changes detected and stashed."
+      fi
+    fi
+
     git checkout $original_branch > /dev/null 2>&1
 
     if git stash list | grep -q $stashName; then

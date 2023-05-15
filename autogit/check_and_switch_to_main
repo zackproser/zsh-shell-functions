@@ -1,0 +1,11 @@
+function check_and_switch_to_main() {
+  if git show-ref --verify --quiet refs/heads/master && \
+     git show-ref --verify --quiet refs/remotes/origin/main && \
+     ! git show-ref --verify --quiet refs/remotes/origin/master; then
+    echo "The local repository was cloned when the remote repository had a default branch of 'master', but the remote repository's default branch has been switched to 'main'. Switching to 'main' and pulling..."
+    git checkout main
+    git pull origin main
+    return 0  # return true
+  fi
+  return 1  # return false
+}
